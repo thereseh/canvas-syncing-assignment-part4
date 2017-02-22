@@ -1,13 +1,84 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
     <script type="text/babel" >
-        "use strict";
+                "use strict";
+    let canvas;
+    let ctx;
+    let sendBufferCanvas;
+    let sendBufferCtx;
+    //our websocket connection
+    let socket; 
+
+    let draws = {};
+
+    const start = (e) => {
+      sendBufferCanvas = document.createElement("canvas");
+      sendBufferCanvas.height = 100;
+      sendBufferCanvas.width = 100;
+      sendBufferCtx = sendBufferCanvas.getContext("2d");
+      
+      ctx.fillRect(e.pageX, e.pageY, 100, 100);
+      
+      sendBufferCtx.fillStyle = "red";
+      sendBufferCtx.fillRect(0, 0, 100, 100);
+      
+      const data = {
+        x: e.pageX,
+        y: e.pageY,
+        height: 100,
+        width: 100,
+        imgData: sendBufferCanvas.toDataURL()
+      };
+      
+      socket.emit("addImage", data);
+    };
+    // when you add a shape, add it to objects and tell the server 
+    const addShape = (data) => {
+    const image = new Image();
+
+      image.onload = () => {
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(image, data.x, data.y, data.width, data.height);
+        ctx.restore();
+      };
+      image.src = data.imgData;
+    };
+
+    const init = () => {
+      canvas = document.querySelector("#canvas");
+      ctx = canvas.getContext("2d");
+        
+      socket = io.connect();
+      
+      // place an image
+      canvas.onmousedown = (e) => {
+        start(e);
+      };
+        
+      // when another client has added an image
+      socket.on('fromServer', (data) => {
+        addShape(data);
+      });
+      
+      // if user joins later
+      socket.on('updateCanvas', (data) => {
+       let keys = Object.keys(data);
+        
+        for (let i = 0; i < keys.length; i++) {
+          addShape(data[keys[i]]);
+        }
+      });
+    };
+
+    window.onload = init;
     
     </script>
 </head>
 <body>
-
+<canvas id="canvas" height="500" width="500">Please use an HTML 5 browser</canvas>
 </body>
 </html>
