@@ -24,11 +24,9 @@ const io = socketio(server);
 
 io.on('connection', (socket) => {
   socket.join('room1');
-  
   if (Object.keys(images).length > 0) {
     socket.emit('updateCanvas', images);
   }
-  
   socket.on('addImage', (data) => {
     const time = new Date().getTime();
     images[time] = data;
